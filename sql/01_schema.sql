@@ -1,0 +1,12 @@
+-- ============================================================
+-- OLIST E-COMMERCE ANALYTICS
+-- Database Schema
+-- ============================================================
+-- Author: Renato Marcondes de Souza
+-- Database: PostgreSQL
+-- Project: Brazilian E-Commerce Analytics
+--
+-- Description:
+-- Creates the database tables used in the Olist analytics
+-- project, including primary keys and data types.
+-- ============================================================
