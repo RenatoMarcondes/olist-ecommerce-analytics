@@ -1,0 +1,36 @@
+-- ============================================================
+-- OLIST E-COMMERCE ANALYTICS
+-- Data Quality
+-- ============================================================
+-- Author: Renato Marcondes de Souza
+-- Database: PostgreSQL
+-- Project: Brazilian E-Commerce Analytics
+--
+-- Description:
+-- Evaluates the logical and business consistency of the Olist
+-- dataset after the initial data validation process, following
+-- Section 3.2 of the project documentation.
+--
+-- Data Quality scope:
+-- 3.2.1 Order Timeline Consistency
+-- 3.2.2 Order Status and Date Consistency
+-- 3.2.3 Financial Consistency
+-- 3.2.4 Review Consistency
+-- 3.2.5 Product Consistency
+-- 3.2.6 Order Status Consistency
+-- 3.2.7 Order and Payment Consistency
+-- 3.2.8 Geographic Consistency
+--
+-- Methodology:
+-- Identify -> Quantify -> Investigate -> Assess impact
+-- -> Define treatment
+-- ============================================================
+
+
+-- ============================================================
+-- 3.2.1 ORDER TIMELINE CONSISTENCY
+-- ============================================================
+
+-- Objective:
+-- Identify chronological inconsistencies between the main
+-- timestamps of the order lifecycle.
