@@ -1,47 +1,64 @@
-/* ============================================================================
-   OLIST E-COMMERCE ANALYTICS
-   04_business_analysis.sql
+-- ============================================================
+-- OLIST E-COMMERCE ANALYTICS
+-- Business Analysis
+-- ============================================================
+-- Author: Renato Marcondes de Souza
+-- Database: PostgreSQL
+-- Project: Brazilian E-Commerce Analytics
+--
+-- Description:
+-- Performs business-oriented analysis on the validated Olist
+-- dataset, focusing on commercial performance, customers,
+-- product categories, geography, logistics and satisfaction.
+--
+-- Business Analysis scope:
+-- 1. Business Overview
+-- 2. Sales Trends
+-- 3. Product and Category Analysis
+-- 4. Customer and Geographic Analysis
+-- 5. Logistics Analysis
+-- 6. Customer Satisfaction
+--
+-- Methodology:
+-- Define business rules -> Build KPIs -> Analyze trends
+-- -> Compare segments -> Interpret business impact
+--
+-- Business rules:
+-- - Completed commercial analyses use delivered orders.
+-- - Product GMV = SUM(order_items.price), excluding freight.
+-- - Total Order Value = product value + freight value.
+-- - Average Order Value is calculated at order level.
+-- - Customer-level analysis uses customer_unique_id.
+-- - Category translation uses LEFT JOIN to preserve unmapped
+--   categories; missing categories are grouped as 'unknown'.
+-- - On-time delivery compares delivery DATE with estimated
+--   delivery DATE.
+-- - Orders with missing delivery dates are excluded only from
+--   metrics that require delivery timing.
+-- - Multiple reviews for the same order are aggregated at
+--   order level before satisfaction analysis.
+-- - Review/logistics relationships are interpreted as
+--   associations and not as evidence of causation.
+-- - The primary monthly trend window is January 2017 through
+--   August 2018 to avoid incomplete or residual periods.
+--
+-- Note:
+-- This script performs read-only analytical queries.
+-- No records are modified or deleted from the raw dataset.
+-- ============================================================
 
-   Purpose:
-   Perform business-oriented analysis on the validated Olist dataset,
-   focusing on commercial performance, customers, product categories,
-   geography, logistics, and customer satisfaction.
-
-   Business Rules:
-   - Completed commercial analyses use orders with status = 'delivered'.
-   - Product GMV = SUM(order_items.price), excluding freight.
-   - Total Order Value = product value + freight value.
-   - Average Order Value (AOV) is calculated at order level.
-   - Customer-level analysis uses customer_unique_id.
-   - Category translation uses LEFT JOIN to preserve unmapped categories.
-   - Products without category are grouped as 'unknown'.
-   - On-time delivery compares delivery DATE against estimated delivery DATE.
-   - Orders with missing delivery date are excluded only from metrics that
-     require delivery timing.
-   - Multiple reviews for the same order are aggregated at order level.
-   - Review/logistics relationships are interpreted as associations,
-     not evidence of causation.
-   - The primary monthly trend window is January 2017 through August 2018
-     to avoid incomplete or residual periods.
-
-   Dataset:
-   Brazilian E-Commerce Public Dataset by Olist
-
-   Database:
-   PostgreSQL
-============================================================================ */
 
 
-/* ============================================================================
-   1. BUSINESS OVERVIEW
-============================================================================ */
+-- ============================================================
+-- 1. BUSINESS OVERVIEW
+-- ============================================================
 
 
-/* ----------------------------------------------------------------------------
-   1.1 ORDER OVERVIEW
-   Objective:
-   Understand order volume and status distribution.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 1.1 ORDER OVERVIEW
+-- Objective:
+-- Understand order volume and status distribution.
+-- ------------------------------------------------------------
 
 SELECT
     order_status,
@@ -54,12 +71,10 @@ FROM orders
 GROUP BY order_status
 ORDER BY orders DESC;
 
-/*
-Observed result:
-- Total orders: 99,441
-- Delivered orders: 96,478
-- Delivered rate: 97.02%
-*/
+-- Observed result:
+-- - Total orders: 99,441
+-- - Delivered orders: 96,478
+-- - Delivered rate: 97.02%
 
 
 SELECT
@@ -79,22 +94,20 @@ SELECT
 FROM orders;
 
 
-/* ----------------------------------------------------------------------------
-   1.2 CUSTOMER OVERVIEW
-   Objective:
-   Distinguish customer records from unique customers.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 1.2 CUSTOMER OVERVIEW
+-- Objective:
+-- Distinguish customer records from unique customers.
+-- ------------------------------------------------------------
 
 SELECT
     COUNT(*) AS customer_records,
     COUNT(DISTINCT customer_unique_id) AS unique_customers
 FROM customers;
 
-/*
-Observed result:
-- Customer records: 99,441
-- Unique customers: 96,096
-*/
+-- Observed result:
+-- - Customer records: 99,441
+-- - Unique customers: 96,096
 
 
 SELECT
@@ -104,17 +117,15 @@ JOIN customers c
     ON o.customer_id = c.customer_id
 WHERE o.order_status = 'delivered';
 
-/*
-Observed result:
-- Unique customers with delivered orders: 93,358
-*/
+-- Observed result:
+-- - Unique customers with delivered orders: 93,358
 
 
-/* ----------------------------------------------------------------------------
-   1.3 CUSTOMER PURCHASE FREQUENCY
-   Objective:
-   Measure customer repeat purchase behavior.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 1.3 CUSTOMER PURCHASE FREQUENCY
+-- Objective:
+-- Measure customer repeat purchase behavior.
+-- ------------------------------------------------------------
 
 WITH customer_orders AS (
     SELECT
@@ -147,13 +158,11 @@ SELECT
 
 FROM customer_orders;
 
-/*
-Observed result:
-- Unique customers: 93,358
-- One-time customers: 90,557
-- Repeat customers: 2,801
-- Repeat Customer Rate: 3.00%
-*/
+-- Observed result:
+-- - Unique customers: 93,358
+-- - One-time customers: 90,557
+-- - Repeat customers: 2,801
+-- - Repeat Customer Rate: 3.00%
 
 
 WITH customer_orders AS (
@@ -175,11 +184,11 @@ GROUP BY delivered_orders
 ORDER BY delivered_orders;
 
 
-/* ----------------------------------------------------------------------------
-   1.4 SALES VALUE
-   Objective:
-   Calculate Product GMV, Freight Value, and Total Order Value.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 1.4 SALES VALUE
+-- Objective:
+-- Calculate Product GMV, Freight Value, and Total Order Value.
+-- ------------------------------------------------------------
 
 SELECT
     ROUND(SUM(oi.price), 2) AS product_gmv
@@ -188,10 +197,8 @@ JOIN orders o
     ON oi.order_id = o.order_id
 WHERE o.order_status = 'delivered';
 
-/*
-Observed result:
-- Product GMV: R$ 13,221,498.11
-*/
+-- Observed result:
+-- - Product GMV: R$ 13,221,498.11
 
 
 SELECT
@@ -201,10 +208,8 @@ JOIN orders o
     ON oi.order_id = o.order_id
 WHERE o.order_status = 'delivered';
 
-/*
-Observed result:
-- Freight Value: R$ 2,198,275.64
-*/
+-- Observed result:
+-- - Freight Value: R$ 2,198,275.64
 
 
 SELECT
@@ -217,17 +222,15 @@ JOIN orders o
     ON oi.order_id = o.order_id
 WHERE o.order_status = 'delivered';
 
-/*
-Observed result:
-- Total Order Value: R$ 15,419,773.75
-*/
+-- Observed result:
+-- - Total Order Value: R$ 15,419,773.75
 
 
-/* ----------------------------------------------------------------------------
-   1.5 AVERAGE ORDER VALUE
-   Objective:
-   Calculate average order value at order level, avoiding item-level bias.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 1.5 AVERAGE ORDER VALUE
+-- Objective:
+-- Calculate average order value at order level, avoiding item-level bias.
+-- ------------------------------------------------------------
 
 WITH order_values AS (
     SELECT
@@ -247,13 +250,11 @@ SELECT
     ROUND(MAX(order_value), 2) AS maximum_order_value
 FROM order_values;
 
-/*
-Observed result:
-- Delivered orders: 96,478
-- AOV: R$ 159.83
-- Minimum order value: R$ 9.59
-- Maximum order value: R$ 13,664.08
-*/
+-- Observed result:
+-- - Delivered orders: 96,478
+-- - AOV: R$ 159.83
+-- - Minimum order value: R$ 9.59
+-- - Maximum order value: R$ 13,664.08
 
 
 WITH order_values AS (
@@ -296,25 +297,22 @@ SELECT
 
 FROM order_values;
 
-/*
-Observed result:
-- Average: R$ 159.83
-- Median: R$ 105.28
-- P90: R$ 305.92
-- P95: R$ 446.23
-- P99: R$ 1,052.39
-
-Interpretation:
-The distribution is right-skewed, with higher-value orders increasing the mean.
-No outliers were removed without evidence of data inconsistency.
-*/
+-- Observed result:
+-- - Average: R$ 159.83
+-- - Median: R$ 105.28
+-- - P90: R$ 305.92
+-- - P95: R$ 446.23
+-- - P99: R$ 1,052.39
+-- Interpretation:
+-- The distribution is right-skewed, with higher-value orders increasing the mean.
+-- No outliers were removed without evidence of data inconsistency.
 
 
-/* ----------------------------------------------------------------------------
-   1.6 ITEMS PER ORDER
-   Objective:
-   Understand typical basket size.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 1.6 ITEMS PER ORDER
+-- Objective:
+-- Understand typical basket size.
+-- ------------------------------------------------------------
 
 WITH items_per_order AS (
     SELECT
@@ -334,12 +332,10 @@ SELECT
     MAX(total_items) AS maximum_items
 FROM items_per_order;
 
-/*
-Observed result:
-- Average Items per Order: 1.14
-- Minimum: 1
-- Maximum: 21
-*/
+-- Observed result:
+-- - Average Items per Order: 1.14
+-- - Minimum: 1
+-- - Maximum: 21
 
 
 WITH items_per_order AS (
@@ -367,23 +363,21 @@ FROM items_per_order
 GROUP BY total_items
 ORDER BY total_items;
 
-/*
-Key insight:
-- 90.01% of delivered orders contain exactly one item.
-- 97.67% contain no more than two items.
-*/
+-- Key insight:
+-- - 90.01% of delivered orders contain exactly one item.
+-- - 97.67% contain no more than two items.
 
 
-/* ============================================================================
-   2. SALES TRENDS
-============================================================================ */
+-- ============================================================
+-- 2. SALES TRENDS
+-- ============================================================
 
 
-/* ----------------------------------------------------------------------------
-   2.1 MONTHLY SALES TREND
-   Objective:
-   Analyze delivered orders and Product GMV over time.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 2.1 MONTHLY SALES TREND
+-- Objective:
+-- Analyze delivered orders and Product GMV over time.
+-- ------------------------------------------------------------
 
 SELECT
     DATE_TRUNC(
@@ -413,11 +407,11 @@ GROUP BY
 ORDER BY month;
 
 
-/* ----------------------------------------------------------------------------
-   2.2 MONTHLY AOV
-   Primary trend window:
-   January 2017 through August 2018.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 2.2 MONTHLY AOV
+-- Primary trend window:
+-- January 2017 through August 2018.
+-- ------------------------------------------------------------
 
 WITH monthly_orders AS (
     SELECT
@@ -459,9 +453,9 @@ GROUP BY month
 ORDER BY month;
 
 
-/* ----------------------------------------------------------------------------
-   2.3 MONTH-OVER-MONTH GROWTH
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 2.3 MONTH-OVER-MONTH GROWTH
+-- ------------------------------------------------------------
 
 WITH monthly_sales AS (
     SELECT
@@ -525,18 +519,16 @@ SELECT
 FROM monthly_sales
 ORDER BY month;
 
-/*
-Key observation:
-November 2017:
-- Orders MoM: +62.77%
-- Total Order Value MoM: +53.55%
-*/
+-- Key observation:
+-- November 2017:
+-- - Orders MoM: +62.77%
+-- - Total Order Value MoM: +53.55%
 
 
-/* ----------------------------------------------------------------------------
-   2.4 YEAR-OVER-YEAR GROWTH
-   Compare January-August 2017 with January-August 2018.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 2.4 YEAR-OVER-YEAR GROWTH
+-- Compare January-August 2017 with January-August 2018.
+-- ------------------------------------------------------------
 
 WITH monthly_sales AS (
     SELECT
@@ -616,25 +608,148 @@ JOIN monthly_sales s2018
 
 ORDER BY s2017.month_num;
 
-/*
-Key insights:
-- Jan-Aug 2018 delivered orders were approximately 139.94% higher
-  than Jan-Aug 2017.
-- Total Order Value increased approximately 143.36%.
-- AOV increased only approximately 1.42%.
-- Growth was therefore primarily driven by higher order volume.
-- Every comparable month from January through August recorded YoY growth.
-*/
+-- Key insights:
+-- - Jan-Aug 2018 delivered orders were approximately 139.94% higher
+-- than Jan-Aug 2017.
+-- - Total Order Value increased approximately 143.36%.
+-- - AOV increased only approximately 1.42%.
+-- - Growth was therefore primarily driven by higher order volume.
+-- - Every comparable month from January through August recorded YoY growth.
 
 
-/* ============================================================================
-   3. PRODUCT AND CATEGORY ANALYSIS
-============================================================================ */
+-- ------------------------------------------------------------
+-- 2.5 JAN-AUG YEAR-OVER-YEAR SUMMARY
+-- ------------------------------------------------------------
+-- Objective:
+-- Compare equivalent January-August periods and determine
+-- whether growth was driven primarily by order volume or AOV.
+
+WITH period_orders AS (
+    SELECT
+        EXTRACT(
+            YEAR FROM o.order_purchase_timestamp
+        )::INT AS year,
+
+        o.order_id,
+
+        SUM(
+            oi.price + oi.freight_value
+        ) AS order_value
+
+    FROM orders o
+
+    JOIN order_items oi
+        ON o.order_id = oi.order_id
+
+    WHERE o.order_status = 'delivered'
+      AND (
+            (
+                o.order_purchase_timestamp >= DATE '2017-01-01'
+                AND o.order_purchase_timestamp < DATE '2017-09-01'
+            )
+            OR
+            (
+                o.order_purchase_timestamp >= DATE '2018-01-01'
+                AND o.order_purchase_timestamp < DATE '2018-09-01'
+            )
+          )
+
+    GROUP BY
+        EXTRACT(
+            YEAR FROM o.order_purchase_timestamp
+        ),
+        o.order_id
+),
+
+period_summary AS (
+    SELECT
+        year,
+        COUNT(*) AS delivered_orders,
+        SUM(order_value) AS total_order_value,
+        AVG(order_value) AS average_order_value
+    FROM period_orders
+    GROUP BY year
+)
+
+SELECT
+    s2017.delivered_orders AS orders_2017,
+    s2018.delivered_orders AS orders_2018,
+
+    ROUND(
+        100.0 * (
+            s2018.delivered_orders
+            - s2017.delivered_orders
+        ) / s2017.delivered_orders,
+        2
+    ) AS orders_yoy_growth_pct,
+
+    ROUND(
+        s2017.total_order_value,
+        2
+    ) AS total_value_2017,
+
+    ROUND(
+        s2018.total_order_value,
+        2
+    ) AS total_value_2018,
+
+    ROUND(
+        100.0 * (
+            s2018.total_order_value
+            - s2017.total_order_value
+        ) / s2017.total_order_value,
+        2
+    ) AS value_yoy_growth_pct,
+
+    ROUND(
+        s2017.average_order_value,
+        2
+    ) AS aov_2017,
+
+    ROUND(
+        s2018.average_order_value,
+        2
+    ) AS aov_2018,
+
+    ROUND(
+        100.0 * (
+            s2018.average_order_value
+            - s2017.average_order_value
+        ) / s2017.average_order_value,
+        2
+    ) AS aov_yoy_growth_pct
+
+FROM period_summary s2017
+
+JOIN period_summary s2018
+    ON s2017.year = 2017
+   AND s2018.year = 2018;
+
+-- Results observed:
+-- Orders Jan-Aug 2017:              21,998
+-- Orders Jan-Aug 2018:              52,783
+-- Order growth:                    139.94%
+-- Total Order Value Jan-Aug 2017:  R$ 3,472,898.25
+-- Total Order Value Jan-Aug 2018:  R$ 8,451,584.77
+-- Total Order Value growth:        143.36%
+-- AOV Jan-Aug 2017:                R$ 157.87
+-- AOV Jan-Aug 2018:                R$ 160.12
+-- AOV growth:                        1.42%
+--
+-- Business interpretation:
+-- Growth was driven primarily by higher order volume rather
+-- than by a material increase in Average Order Value.
 
 
-/* ----------------------------------------------------------------------------
-   3.1 TOP CATEGORIES BY PRODUCT GMV
----------------------------------------------------------------------------- */
+
+-- ============================================================
+-- 3. PRODUCT AND CATEGORY ANALYSIS
+-- ============================================================
+
+
+-- ------------------------------------------------------------
+-- 3.1 TOP CATEGORIES BY PRODUCT GMV
+-- ------------------------------------------------------------
 
 SELECT
     COALESCE(
@@ -675,9 +790,9 @@ ORDER BY product_gmv DESC
 LIMIT 15;
 
 
-/* ----------------------------------------------------------------------------
-   3.2 CATEGORY GMV SHARE AND AVERAGE ITEM PRICE
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 3.2 CATEGORY GMV SHARE AND AVERAGE ITEM PRICE
+-- ------------------------------------------------------------
 
 WITH category_sales AS (
     SELECT
@@ -739,18 +854,16 @@ ORDER BY product_gmv DESC
 
 LIMIT 15;
 
-/*
-Key observations:
-- Health & Beauty leads Product GMV with 9.33%.
-- Watches & Gifts ranks second in GMV despite lower item volume,
-  supported by a higher average item price.
-- Top five categories account for 39.83% of Product GMV.
-*/
+-- Key observations:
+-- - Health & Beauty leads Product GMV with 9.33%.
+-- - Watches & Gifts ranks second in GMV despite lower item volume,
+-- supported by a higher average item price.
+-- - Top five categories account for 39.83% of Product GMV.
 
 
-/* ----------------------------------------------------------------------------
-   3.3 TOP CATEGORIES BY ITEM VOLUME
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 3.3 TOP CATEGORIES BY ITEM VOLUME
+-- ------------------------------------------------------------
 
 WITH category_sales AS (
     SELECT
@@ -813,16 +926,14 @@ ORDER BY items_sold DESC
 
 LIMIT 15;
 
-/*
-Key observation:
-Bed, Bath & Table leads item volume with 9.94%, while
-Health & Beauty leads Product GMV.
-*/
+-- Key observation:
+-- Bed, Bath & Table leads item volume with 9.94%, while
+-- Health & Beauty leads Product GMV.
 
 
-/* ----------------------------------------------------------------------------
-   3.4 CATEGORY GMV CONCENTRATION
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 3.4 CATEGORY GMV CONCENTRATION
+-- ------------------------------------------------------------
 
 WITH category_sales AS (
     SELECT
@@ -893,16 +1004,14 @@ FROM ranked_categories
 
 ORDER BY product_gmv DESC;
 
-/*
-Key observation:
-- 18 categories are required to exceed 80% of Product GMV.
-- The first 18 categories represent 81.29%.
-*/
+-- Key observation:
+-- - 18 categories are required to exceed 80% of Product GMV.
+-- - The first 18 categories represent 81.29%.
 
 
-/* ----------------------------------------------------------------------------
-   3.5 PRODUCTS WITH MISSING CATEGORY
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 3.5 PRODUCTS WITH MISSING CATEGORY
+-- ------------------------------------------------------------
 
 SELECT
     COUNT(
@@ -945,27 +1054,24 @@ JOIN products p
 WHERE o.order_status = 'delivered'
   AND p.product_category_name IS NULL;
 
-/*
-Observed result:
-- Products: 584
-- Items sold: 1,537
-- Orders: 1,392
-- Product GMV: R$ 170,726.63
-- GMV share: 1.29%
-
-Treatment:
-Records are retained and represented as 'unknown' in category analyses.
-*/
+-- Observed result:
+-- - Products: 584
+-- - Items sold: 1,537
+-- - Orders: 1,392
+-- - Product GMV: R$ 170,726.63
+-- - GMV share: 1.29%
+-- Treatment:
+-- Records are retained and represented as 'unknown' in category analyses.
 
 
-/* ============================================================================
-   4. CUSTOMER AND GEOGRAPHIC ANALYSIS
-============================================================================ */
+-- ============================================================
+-- 4. CUSTOMER AND GEOGRAPHIC ANALYSIS
+-- ============================================================
 
 
-/* ----------------------------------------------------------------------------
-   4.1 CUSTOMERS AND ORDERS BY STATE
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 4.1 CUSTOMERS AND ORDERS BY STATE
+-- ------------------------------------------------------------
 
 SELECT
     c.customer_state AS state,
@@ -990,9 +1096,9 @@ GROUP BY c.customer_state
 ORDER BY unique_customers DESC;
 
 
-/* ----------------------------------------------------------------------------
-   4.2 CUSTOMER STATE STABILITY
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 4.2 CUSTOMER STATE STABILITY
+-- ------------------------------------------------------------
 
 WITH customer_states AS (
     SELECT
@@ -1027,18 +1133,22 @@ SELECT
 
 FROM customer_states;
 
-/*
-Observed result:
-- 93,358 unique customers
-- 93,321 associated with one state
-- 37 associated with multiple states
-- 99.96% state stability
-*/
+-- Observed result:
+-- - 93,358 unique customers
+-- - 93,321 associated with one state
+-- - 37 associated with multiple states
+-- - 99.96% state stability
+--
+-- Analytical note:
+-- State-level unique customer counts are non-additive because
+-- a small number of customer_unique_id values appear in more
+-- than one state. Delivered orders and GMV are preferred for
+-- additive geographic totals in the analytical layer.
 
 
-/* ----------------------------------------------------------------------------
-   4.3 PRODUCT GMV AND ORDER SHARE BY STATE
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 4.3 PRODUCT GMV AND ORDER SHARE BY STATE
+-- ------------------------------------------------------------
 
 WITH state_sales AS (
     SELECT
@@ -1093,18 +1203,16 @@ FROM state_sales
 
 ORDER BY product_gmv DESC;
 
-/*
-Key observations:
-- SP accounts for 41.98% of delivered orders and 38.33% of Product GMV.
-- SP, RJ, and MG together represent:
-  66.55% of delivered orders
-  63.38% of Product GMV.
-*/
+-- Key observations:
+-- - SP accounts for 41.98% of delivered orders and 38.33% of Product GMV.
+-- - SP, RJ, and MG together represent:
+-- 66.55% of delivered orders
+-- 63.38% of Product GMV.
 
 
-/* ----------------------------------------------------------------------------
-   4.4 AOV AND FREIGHT BY STATE
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 4.4 AOV AND FREIGHT BY STATE
+-- ------------------------------------------------------------
 
 WITH order_values AS (
     SELECT
@@ -1170,31 +1278,29 @@ GROUP BY state
 
 ORDER BY average_order_value DESC;
 
-/*
-Key observations:
-- SP has the largest order volume but the lowest state AOV:
-  R$ 142.46.
-- SP freight share: 12.17%.
-- Higher AOV in several lower-volume states is explained by both
-  higher product values and higher freight costs.
-*/
+-- Key observations:
+-- - SP has the largest order volume but the lowest state AOV:
+-- R$ 142.46.
+-- - SP freight share: 12.17%.
+-- - Higher AOV in several lower-volume states is explained by both
+-- higher product values and higher freight costs.
 
 
-/* ============================================================================
-   5. LOGISTICS ANALYSIS
-============================================================================ */
+-- ============================================================
+-- 5. LOGISTICS ANALYSIS
+-- ============================================================
 
 
-/* ----------------------------------------------------------------------------
-   5.1 DELIVERY TIME AND ON-TIME DELIVERY RATE
-
-   Business Rule:
-   An order is considered on time when the delivery DATE is equal to
-   or earlier than the estimated delivery DATE.
-
-   Using timestamps would incorrectly classify orders delivered later
-   during the estimated calendar day as late.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 5.1 DELIVERY TIME AND ON-TIME DELIVERY RATE
+--
+-- Business Rule:
+-- An order is considered on time when the delivery DATE is equal to
+-- or earlier than the estimated delivery DATE.
+--
+-- Using timestamps would incorrectly classify orders delivered later
+-- during the estimated calendar day as late.
+-- ------------------------------------------------------------
 
 WITH delivery_analysis AS (
     SELECT
@@ -1248,20 +1354,18 @@ SELECT
 
 FROM delivery_analysis;
 
-/*
-Observed result:
-- Analyzed orders: 96,470
-- Average delivery time: 12.56 days
-- Median delivery time: 10.22 days
-- On-time orders: 89,936
-- Late orders: 6,534
-- On-Time Delivery Rate: 93.23%
-*/
+-- Observed result:
+-- - Analyzed orders: 96,470
+-- - Average delivery time: 12.56 days
+-- - Median delivery time: 10.22 days
+-- - On-time orders: 89,936
+-- - Late orders: 6,534
+-- - On-Time Delivery Rate: 93.23%
 
 
-/* ----------------------------------------------------------------------------
-   5.2 LATE DELIVERY SEVERITY
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 5.2 LATE DELIVERY SEVERITY
+-- ------------------------------------------------------------
 
 WITH late_deliveries AS (
     SELECT
@@ -1302,19 +1406,17 @@ SELECT
 
 FROM late_deliveries;
 
-/*
-Observed result:
-- Late orders: 6,534
-- Average delay: 10.62 days
-- Median delay: 7 days
-- P90 delay: 22 days
-- Maximum delay: 188 days
-*/
+-- Observed result:
+-- - Late orders: 6,534
+-- - Average delay: 10.62 days
+-- - Median delay: 7 days
+-- - P90 delay: 22 days
+-- - Maximum delay: 188 days
 
 
-/* ----------------------------------------------------------------------------
-   5.3 DELAY DISTRIBUTION
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 5.3 DELAY DISTRIBUTION
+-- ------------------------------------------------------------
 
 WITH late_deliveries AS (
     SELECT
@@ -1374,24 +1476,22 @@ GROUP BY delay_range
 
 ORDER BY delay_range;
 
-/*
-Key observations:
-- 56.20% of late orders were delivered within 7 days after the estimate.
-- 78.82% were delivered within 14 days.
-- 5.28% exceeded 30 days.
-*/
+-- Key observations:
+-- - 56.20% of late orders were delivered within 7 days after the estimate.
+-- - 78.82% were delivered within 14 days.
+-- - 5.28% exceeded 30 days.
 
 
-/* ============================================================================
-   6. CUSTOMER SATISFACTION
-============================================================================ */
+-- ============================================================
+-- 6. CUSTOMER SATISFACTION
+-- ============================================================
 
 
-/* ----------------------------------------------------------------------------
-   6.1 REVIEW COVERAGE
-   Multiple reviews are aggregated at order level to avoid overweighting
-   orders containing more than one review record.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 6.1 REVIEW COVERAGE
+-- Multiple reviews are aggregated at order level to avoid overweighting
+-- orders containing more than one review record.
+-- ------------------------------------------------------------
 
 WITH reviews_per_order AS (
     SELECT
@@ -1426,19 +1526,17 @@ LEFT JOIN reviews_per_order r
 
 WHERE o.order_status = 'delivered';
 
-/*
-Observed result:
-- Delivered orders: 96,478
-- Orders with review: 95,832
-- Orders without review: 646
-- Orders with multiple reviews: 525
-- Review coverage: 99.33%
-*/
+-- Observed result:
+-- - Delivered orders: 96,478
+-- - Orders with review: 95,832
+-- - Orders without review: 646
+-- - Orders with multiple reviews: 525
+-- - Review coverage: 99.33%
 
 
-/* ----------------------------------------------------------------------------
-   6.2 ON-TIME VS LATE CUSTOMER SATISFACTION
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 6.2 ON-TIME VS LATE CUSTOMER SATISFACTION
+-- ------------------------------------------------------------
 
 WITH reviews_per_order AS (
     SELECT
@@ -1500,30 +1598,27 @@ GROUP BY delivery_status
 
 ORDER BY delivery_status;
 
-/*
-Observed result:
-
-Late:
-- Orders: 6,381
-- Average Review Score: 2.27
-- Low Review Rate: 62.36%
-- Positive Review Rate: 26.74%
-
-On time:
-- Orders: 89,443
-- Average Review Score: 4.29
-- Low Review Rate: 9.23%
-- Positive Review Rate: 82.64%
-
-Interpretation:
-Delivery performance shows a strong association with customer satisfaction.
-This analysis demonstrates association, not causation.
-*/
+-- Observed result:
+--
+-- Late:
+-- - Orders: 6,381
+-- - Average Review Score: 2.27
+-- - Low Review Rate: 62.36%
+-- - Positive Review Rate: 26.74%
+--
+-- On time:
+-- - Orders: 89,443
+-- - Average Review Score: 4.29
+-- - Low Review Rate: 9.23%
+-- - Positive Review Rate: 82.64%
+-- Interpretation:
+-- Delivery performance shows a strong association with customer satisfaction.
+-- This analysis demonstrates association, not causation.
 
 
-/* ----------------------------------------------------------------------------
-   6.3 DELAY SEVERITY VS CUSTOMER SATISFACTION
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 6.3 DELAY SEVERITY VS CUSTOMER SATISFACTION
+-- ------------------------------------------------------------
 
 WITH reviews_per_order AS (
     SELECT
@@ -1610,39 +1705,36 @@ GROUP BY delay_range
 
 ORDER BY delay_range;
 
-/*
-Observed result:
-
-On time:
-- Avg Review: 4.29
-
-1-3 days late:
-- Avg Review: 3.29
-
-4-7 days late:
-- Avg Review: 2.11
-
-8-14 days late:
-- Avg Review: 1.67
-
-15-30 days late:
-- Avg Review: 1.62
-
-More than 30 days:
-- Avg Review: 2.06
-
-Interpretation:
-Customer satisfaction deteriorates sharply after the estimated delivery date.
-The relationship is strongly negative overall but not strictly monotonic
-for extremely delayed orders.
-*/
+-- Observed result:
+--
+-- On time:
+-- - Avg Review: 4.29
+--
+-- 1-3 days late:
+-- - Avg Review: 3.29
+--
+-- 4-7 days late:
+-- - Avg Review: 2.11
+--
+-- 8-14 days late:
+-- - Avg Review: 1.67
+--
+-- 15-30 days late:
+-- - Avg Review: 1.62
+--
+-- More than 30 days:
+-- - Avg Review: 2.06
+-- Interpretation:
+-- Customer satisfaction deteriorates sharply after the estimated delivery date.
+-- The relationship is strongly negative overall but not strictly monotonic
+-- for extremely delayed orders.
 
 
-/* ----------------------------------------------------------------------------
-   6.4 EXTREME DELAY REVIEW ANALYSIS
-   Objective:
-   Investigate the heterogeneous >30-day delay tail.
----------------------------------------------------------------------------- */
+-- ------------------------------------------------------------
+-- 6.4 EXTREME DELAY REVIEW ANALYSIS
+-- Objective:
+-- Investigate the heterogeneous >30-day delay tail.
+-- ------------------------------------------------------------
 
 WITH reviews_per_order AS (
     SELECT
@@ -1717,79 +1809,81 @@ GROUP BY 1
 
 ORDER BY MIN(delay_days);
 
-/*
-Observed result:
-31-45 days:
-- 185 orders
-- Avg Review: 1.68
-
-46-60 days:
-- 69 orders
-- Avg Review: 2.25
-
-61-90 days:
-- 30 orders
-- Avg Review: 2.43
-
-More than 90 days:
-- 45 orders
-- Avg Review: 3.07
-
-Interpretation:
-The extreme-delay tail contains relatively small sample sizes and does not
-follow a consistent monotonic pattern. No causal explanation is inferred.
-*/
+-- Observed result:
+-- 31-45 days:
+-- - 185 orders
+-- - Avg Review: 1.68
+--
+-- 46-60 days:
+-- - 69 orders
+-- - Avg Review: 2.25
+--
+-- 61-90 days:
+-- - 30 orders
+-- - Avg Review: 2.43
+--
+-- More than 90 days:
+-- - 45 orders
+-- - Avg Review: 3.07
+-- Interpretation:
+-- The extreme-delay tail contains relatively small sample sizes
+-- and does not follow a consistent monotonic pattern.
+-- No causal explanation is inferred.
 
 
-/* ============================================================================
-   FINAL BUSINESS INSIGHTS
-============================================================================ */
+-- ============================================================
+-- FINAL BUSINESS ANALYSIS NOTES
+-- ============================================================
 
-/*
-1. Commercial Scale
-   - 96,478 delivered orders.
-   - 93,358 unique customers with delivered orders.
-   - Product GMV: R$ 13.22M.
-   - Total Order Value: R$ 15.42M.
-   - AOV: R$ 159.83.
+-- 1. Commercial Scale
+-- - 96,478 delivered orders.
+-- - 93,358 unique customers with delivered orders.
+-- - Product GMV: R$ 13.22M.
+-- - Total Order Value: R$ 15.42M.
+-- - AOV: R$ 159.83.
+--
+-- 2. Customer Behavior
+-- - Only 3.00% of customers placed more than one delivered
+--   order.
+-- - 90.01% of delivered orders contained exactly one item.
+--
+-- 3. Growth
+-- - Jan-Aug 2018 recorded approximately 139.94% more delivered
+--   orders than the same period in 2017.
+-- - Total Order Value increased approximately 143.36%.
+-- - AOV increased only approximately 1.42%, indicating that
+--   growth was primarily driven by order volume.
+--
+-- 4. Product Categories
+-- - Health & Beauty leads Product GMV.
+-- - Bed, Bath & Table leads item volume.
+-- - Top five categories account for 39.83% of Product GMV.
+-- - 18 categories are required to exceed 80% of Product GMV.
+--
+-- 5. Geography
+-- - SP accounts for 41.98% of delivered orders.
+-- - SP, RJ, and MG together represent 66.55% of delivered orders.
+-- - Geographic AOV differences reflect both product value and freight.
+--
+-- 6. Logistics
+-- - Average delivery time: 12.56 days.
+-- - Median delivery time: 10.22 days.
+-- - On-Time Delivery Rate: 93.23%.
+-- - Median delay among late orders: 7 days.
+--
+-- 7. Customer Satisfaction
+-- - On-time orders: average review score 4.29.
+-- - Late orders: average review score 2.27.
+-- - 62.36% of late orders received low review scores.
+-- - Only 9.23% of on-time orders received low review scores.
+-- - Delivery delay shows a strong negative association with
+--   satisfaction.
+-- Final Note:
+-- All business analyses preserve the raw dataset.
+-- Records are excluded only when the specific KPI requires unavailable
+-- or logically unsuitable fields.
 
-2. Customer Behavior
-   - Only 3.00% of customers placed more than one delivered order.
-   - 90.01% of delivered orders contained exactly one item.
 
-3. Growth
-   - Jan-Aug 2018 recorded approximately 139.94% more delivered orders
-     than the same period in 2017.
-   - Total Order Value increased approximately 143.36%.
-   - AOV increased only approximately 1.42%, indicating that growth was
-     primarily driven by order volume.
-
-4. Product Categories
-   - Health & Beauty leads Product GMV.
-   - Bed, Bath & Table leads item volume.
-   - Top five categories account for 39.83% of Product GMV.
-   - 18 categories are required to exceed 80% of Product GMV.
-
-5. Geography
-   - SP accounts for 41.98% of delivered orders.
-   - SP, RJ, and MG together represent 66.55% of delivered orders.
-   - Geographic AOV differences reflect both product value and freight.
-
-6. Logistics
-   - Average delivery time: 12.56 days.
-   - Median delivery time: 10.22 days.
-   - On-Time Delivery Rate: 93.23%.
-   - Median delay among late orders: 7 days.
-
-7. Customer Satisfaction
-   - On-time orders: average review score 4.29.
-   - Late orders: average review score 2.27.
-   - 62.36% of late orders received low review scores.
-   - Only 9.23% of on-time orders received low review scores.
-   - Delivery delay shows a strong negative association with satisfaction.
-
-Final Note:
-All business analyses preserve the raw dataset.
-Records are excluded only when the specific KPI requires unavailable
-or logically unsuitable fields.
-*/
+-- ============================================================
+-- END OF BUSINESS ANALYSIS SCRIPT
+-- ============================================================
