@@ -228,8 +228,11 @@ ORDER BY time_difference DESC;
 -- No records are deleted from the raw dataset.
 --
 -- Orders with timeline inconsistencies should be flagged and
--- excluded only from KPIs that depend on processing or delivery
--- time calculations.
+-- excluded only from KPIs that directly depend on the affected
+-- timestamp pair or lifecycle stage.
+--
+-- Records may remain in metrics based on unaffected date pairs
+-- when their relevant chronology is valid.
 --
 -- The dataset does not provide enough information to determine
 -- the root cause of these timestamp inconsistencies.
