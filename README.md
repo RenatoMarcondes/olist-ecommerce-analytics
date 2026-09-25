@@ -4,7 +4,7 @@ End-to-end e-commerce data analytics project using **PostgreSQL, SQL, Power Quer
 
 The project covers the full analytics workflow: data loading, validation, data quality checks, business analysis, analytical modeling, KPI development, dashboard creation, and SQL-to-Power BI validation.
 
-📄 **Full project documentation:** [Projeto_Olist_Analytics.docx](docs/Projeto_Olist_Analytics.docx)
+📄 **Full project documentation:** [Projeto_Olist_Analytics.pdf](docs/Projeto_Olist_Analytics.pdf)
 
 The complete documentation includes data validation, data quality rules, business definitions, analytical modeling decisions, SQL results, Power BI methodology, and KPI validation.
 
@@ -240,7 +240,7 @@ olist-ecommerce-analytics/
 │       └── Dashboard03_logisticaesatisfacao.png
 │
 ├── docs/
-│   └── Projeto_Olist_Analytics.docx
+│   └── Projeto_Olist_Analytics.pdf
 │
 └── README.md
 ```
